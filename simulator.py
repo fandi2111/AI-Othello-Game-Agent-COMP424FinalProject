@@ -1,3 +1,4 @@
+
 from world import World, PLAYER_1_NAME, PLAYER_2_NAME
 import argparse
 from utils import all_logging_disabled
@@ -18,13 +19,13 @@ def get_args():
     parser.add_argument(
         "--board_size_min",
         type=int,
-        default=6,
+        default=10, #
         help="In autoplay mode, the minimum board size",
     )
     parser.add_argument(
         "--board_size_max",
         type=int,
-        default=12,
+        default=10,
         help="In autoplay mode, the maximum board size",
     )
     parser.add_argument("--display", action="store_true", default=False)
@@ -81,7 +82,7 @@ class Simulator:
             autoplay=self.args.autoplay,
         )
 
-    def run(self, swap_players=False, board_size=None):
+    def run(self, swap_players=False, board_size=None): #
         self.reset(swap_players=swap_players, board_size=board_size)
         is_end, p0_score, p1_score = self.world.step()
         while not is_end:
@@ -120,12 +121,23 @@ class Simulator:
                     p1_win_count += 1
                 elif p0_score < p1_score:
                     p2_win_count += 1
+
                 else:  # Tie
                     p1_win_count += 0.5
                     p2_win_count += 0.5
+
                 p1_times.extend(p0_time)
                 p2_times.extend(p1_time)
-
+#
+                if i % 10 == 0:
+                    print("finished", i+1, "games")
+                    print(
+                        f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / (i+1)}. Maximum turn time was {np.round(np.max(p1_times), 5)} seconds."
+                    )
+                    print(
+                        f"Player 2, agent {self.args.player_2}, win percentage: {p2_win_count / (i+1)}. Maximum turn time was {np.round(np.max(p2_times), 5)} seconds."
+                    )
+#
         logger.info(
             f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p1_times),5)} seconds."
         )
