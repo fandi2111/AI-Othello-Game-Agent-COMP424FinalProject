@@ -19,13 +19,13 @@ def get_args():
     parser.add_argument(
         "--board_size_min",
         type=int,
-        default=10, #
+        default=6, #
         help="In autoplay mode, the minimum board size",
     )
     parser.add_argument(
         "--board_size_max",
         type=int,
-        default=10,
+        default=12,
         help="In autoplay mode, the maximum board size",
     )
     parser.add_argument("--display", action="store_true", default=False)
@@ -129,14 +129,13 @@ class Simulator:
                 p1_times.extend(p0_time)
                 p2_times.extend(p1_time)
 #
-                if i % 10 == 0:
-                    print("finished", i+1, "games")
-                    print(
-                        f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / (i+1)}. Maximum turn time was {np.round(np.max(p1_times), 5)} seconds."
-                    )
-                    print(
-                        f"Player 2, agent {self.args.player_2}, win percentage: {p2_win_count / (i+1)}. Maximum turn time was {np.round(np.max(p2_times), 5)} seconds."
-                    )
+                print("finished", i+1, "games")
+                print(
+                    f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count/ (i+1)}. Maximum turn time was {np.round(np.max(p1_times), 5)} seconds."
+                )
+                print(
+                    f"Player 2, agent {self.args.player_2}, win percentage: {p2_win_count / (i+1)}. Maximum turn time was {np.round(np.max(p2_times), 5)} seconds."
+                )
 #
         logger.info(
             f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p1_times),5)} seconds."

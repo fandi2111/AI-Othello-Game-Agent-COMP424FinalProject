@@ -18,7 +18,7 @@ class StudentAgent(Agent):
     super(StudentAgent, self).__init__()
     self.name = "AlphaBetaAgent"
     #self.max_depth = 4  # Limit the search depth
-    self.time_limit = 1.9  # Time constraint in seconds
+    self.time_limit = 1.85  # Time constraint in seconds
     self.start_time = time.time()
 
   def step(self, chess_board, player, opponent):
@@ -189,34 +189,36 @@ class StudentAgent(Agent):
           weights[x, y] = -500
 
     # Edge weights (non-corner)
-    for i in range(2, n - 1):#
+    for i in range(2, n - 2):#
       if weights[0, i] != 100000:
-        weights[0, i] = 20  # Top edge
-        weights[0, 2] = 25
-        weights[0, n-3] = 25
+        #if chess_board[0, i+1] != opponent and chess_board[0, i-1] != opponent:
+          weights[0, i] = 20  # Top edge
+          weights[0, 2] = 30
+          weights[0, n-3] = 30
 
       if weights[n - 1, i] != 100000:
-        weights[n - 1, i] = 20  # Bottom edge
-        weights[n-1, 2] = 25
-        weights[n-1, n-3] = 25
+        #if chess_board[n - 1, i + 1] != opponent and chess_board[n - 1, i - 1] != opponent:
+          weights[n - 1, i] = 20  # Bottom edge
+          weights[n-1, 2] = 30
+          weights[n-1, n-3] = 30
 
       if weights[i, 0] != 100000:
         weights[i, 0] = 20  # Left edge
-        weights[2, 0] = 25
-        weights[n-3, 0] = 25
+        weights[2, 0] = 30
+        weights[n-3, 0] = 30
 
 
       if weights[i, n - 1] != 100000:
         weights[i, n - 1] = 20  # Right edge
-        weights[2, n-1] = 25
-        weights[n-3, n-1] = 25
+        weights[2, n-1] = 30
+        weights[n-3, n-1] = 30
 
     # Inner grid weights
     inner_start = 1
     inner_end = n - 2
     for r in range(inner_start, inner_end):
       for c in range(inner_start, inner_end):
-        weights[r, c] = -5
+        weights[r, c] = 5
 
     # Frontier stability heuristic: count stable pieces
     frontier_score = 0
@@ -248,14 +250,17 @@ class StudentAgent(Agent):
       mobility_weight = 15
       stability_weight = 2
       piece_weight = 1
+      capture_weight = 0
     elif game_stage < 0.7:  # Mid game
       mobility_weight = 10
       stability_weight = 5
       piece_weight = 3
+      capture_weight = 0
     else:  # Late game
       mobility_weight = 5
       stability_weight = 10
       piece_weight = 10
+      capture_weight = 3
 
     # Final score
     positional_score = sum(
@@ -269,6 +274,7 @@ class StudentAgent(Agent):
             + mobility_weight * mobility_score
             + stability_weight * frontier_score
             + piece_weight * (player_count - opponent_count)
+            + capture_weight * count_capture(chess_board, (r, c), player)
     )
     return total_score
 
