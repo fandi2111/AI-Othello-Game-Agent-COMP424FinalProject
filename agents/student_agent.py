@@ -2,6 +2,7 @@
 from agents.agent import Agent
 from store import register_agent
 import sys
+import matplotlib.pyplot as plt #to remove
 import numpy as np
 from copy import deepcopy
 import time
@@ -20,6 +21,8 @@ class StudentAgent(Agent):
     #self.max_depth = 4  # Limit the search depth
     self.time_limit = 1.85  # Time constraint in seconds
     self.start_time = time.time()
+    self.num_pruned = 0
+    self.breadth_at_depth = {}
 
   def step(self, chess_board, player, opponent):
     """
@@ -48,11 +51,13 @@ class StudentAgent(Agent):
     best_score = float('-inf')
 
     depth = 1  # Start with shallow search
+    self.breadth_at_depth[depth] = 0 # Initialize breadth at depth 1
     while True:
+      self.breadth_at_depth.setdefault(depth, 0)  # Initialize breadth counter
       for move in get_valid_moves(chess_board, player):
+        self.breadth_at_depth[depth] += 1  # Increment breadth counter
         simulated_board = deepcopy(chess_board)
         execute_move(simulated_board, move, player)
-
 
         score = self.min_value(simulated_board, depth, float('-inf'), float('inf'), opponent, player)
 
@@ -67,7 +72,7 @@ class StudentAgent(Agent):
     print("My AI's turn took ", time_taken, "seconds.")
 
     print(f"Best move: {best_move}, Best score: {best_score}")
-
+    self.plot_breadth_vs_depth() # Plot breadth vs depth
     return best_move
 
   def max_value(self, chess_board, depth, alpha, beta, player, opponent):
@@ -121,6 +126,43 @@ class StudentAgent(Agent):
     n = chess_board.shape[0]  # Board size
     weights = np.zeros((n, n))
 
+    edge_q2left = [(i,0) for i in range(1, n//2)]
+    for r, c in edge_q2left:
+      if r % 2 == 1:
+        weights[r, c] -= 30
+    edge_q2up = [(0,i) for i in range(1, n//2)]
+    for r, c in edge_q2up:
+      if c % 2 == 1:
+        weights[r, c] -= 30
+    edge_q1right = [(i, n-1) for i in range(1, n//2)]
+    for r, c in edge_q1right:
+      if r % 2 == 1:
+        weights[r, c] -= 30
+    edge_q3down = [(n-1, i) for i in range(1, n//2)]
+    for r, c in edge_q3down:
+      if c % 2 == 1:
+        weights[r, c] -= 30
+
+
+    edge_q3left = [(i, 0) for i in range(n//2, n)]
+    for r, c in edge_q3left:
+      if r % 2 == 0:
+        weights[r, c] -= 30
+    edge_q4down = [(n-1, i) for i in range(n//2, n)]
+    for r, c in edge_q4down:
+      if c % 2 == 0:
+        weights[r, c] -= 30
+    edge_q4right = [(i, n-1) for i in range(n//2, n)]
+    for r, c in edge_q4right:
+      if r % 2 == 0:
+        weights[r, c] -= 30
+    edge_q1up = [(0, i) for i in range(n//2, n)]
+    for r, c in edge_q1up:
+      if c % 2 == 0:
+        weights[r, c] -= 30
+
+
+
     # Corner positions
     corners = [(0, 0), (0, n - 1), (n - 1, 0), (n - 1, n - 1)]
     for r, c in corners:
@@ -137,8 +179,8 @@ class StudentAgent(Agent):
         if 0 <= r + dr < n and 0 <= c + dc < n
       ]
       if chess_board[r, c] == player:
-        for x, y in adjacent:
-          weights[x, y] = 20
+        #for x, y in adjacent:
+          #weights[x, y] = 20
         for nr, nc in adjacent:
           weights[nr, nc] = 100000
           if chess_board[nr, nc] == player:
@@ -190,28 +232,37 @@ class StudentAgent(Agent):
 
     # Edge weights (non-corner)
     for i in range(2, n - 2):#
-      if weights[0, i] != 100000:
-        #if chess_board[0, i+1] != opponent and chess_board[0, i-1] != opponent:
-          weights[0, i] = 20  # Top edge
-          weights[0, 2] = 30
-          weights[0, n-3] = 30
+      if weights[0, i] <= 99500:
+        if chess_board[0, i+1] != opponent and chess_board[0, i-1] != opponent:
+          weights[0, i] += 20  # Top edge
+          weights[0, 2] += 100 #was 30
+          weights[0, n-3] += 100
+        else:
+          weights[0, i] -= 30
 
-      if weights[n - 1, i] != 100000:
-        #if chess_board[n - 1, i + 1] != opponent and chess_board[n - 1, i - 1] != opponent:
-          weights[n - 1, i] = 20  # Bottom edge
-          weights[n-1, 2] = 30
-          weights[n-1, n-3] = 30
+      if weights[n - 1, i] <= 99500:
+        if chess_board[n - 1, i + 1] != opponent and chess_board[n - 1, i - 1] != opponent:
+          weights[n - 1, i] += 20  # Bottom edge
+          weights[n-1, 2] += 100
+          weights[n-1, n-3] += 100
+        else:
+          weights[n - 1, i] -= 30
 
-      if weights[i, 0] != 100000:
-        weights[i, 0] = 20  # Left edge
-        weights[2, 0] = 30
-        weights[n-3, 0] = 30
+      if weights[i, 0] <= 99500:
+        if chess_board[i+1, 0] != opponent and chess_board[i-1, 0] != opponent:
+          weights[i, 0] += 20  # Left edge
+          weights[2, 0] += 100
+          weights[n-3, 0] += 100
+        else:
+          weights[i, 0] -= 30
 
-
-      if weights[i, n - 1] != 100000:
-        weights[i, n - 1] = 20  # Right edge
-        weights[2, n-1] = 30
-        weights[n-3, n-1] = 30
+      if weights[i, n - 1] <= 99500:
+        if chess_board[i + 1, n - 1] != opponent and chess_board[i - 1, n - 1] != opponent:
+          weights[i, n - 1] += 20  # Right edge
+          weights[2, n-1] += 100
+          weights[n-3, n-1] += 100
+        else:
+          weights[i, n - 1] -= 30
 
     # Inner grid weights
     inner_start = 1
@@ -255,7 +306,7 @@ class StudentAgent(Agent):
       mobility_weight = 10
       stability_weight = 5
       piece_weight = 3
-      capture_weight = 0
+      capture_weight = 0.5
     else:  # Late game
       mobility_weight = 5
       stability_weight = 10
@@ -279,9 +330,6 @@ class StudentAgent(Agent):
     return total_score
 
   def is_stable(self, chess_board, r, c, player):
-    """
-    Determine if a piece at (r, c) is stable (cannot be flipped).
-    """
     directions = get_directions()
     n = chess_board.shape[0]
     for dr, dc in directions:
@@ -296,3 +344,14 @@ class StudentAgent(Agent):
       if not stable:
         return False
     return True
+
+  def plot_breadth_vs_depth(self):
+    depths = list(self.breadth_at_depth.keys())
+    breadths = list(self.breadth_at_depth.values())
+    plt.figure(figsize=(8, 6))
+    plt.plot(depths, breadths, marker='o', linestyle='-', color='blue')
+    plt.title("Tree Breadth at Each Depth")
+    plt.xlabel("Depth")
+    plt.ylabel("Breadth (Number of Nodes)")
+    plt.grid(True)
+    plt.show()
