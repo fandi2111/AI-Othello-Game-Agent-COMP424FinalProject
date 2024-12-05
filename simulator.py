@@ -128,15 +128,7 @@ class Simulator:
 
                 p1_times.extend(p0_time)
                 p2_times.extend(p1_time)
-#
-                print("finished", i+1, "games")
-                print(
-                    f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count/ (i+1)}. Maximum turn time was {np.round(np.max(p1_times), 5)} seconds."
-                )
-                print(
-                    f"Player 2, agent {self.args.player_2}, win percentage: {p2_win_count / (i+1)}. Maximum turn time was {np.round(np.max(p2_times), 5)} seconds."
-                )
-#
+
         logger.info(
             f"Player 1, agent {self.args.player_1}, win percentage: {p1_win_count / self.args.autoplay_runs}. Maximum turn time was {np.round(np.max(p1_times),5)} seconds."
         )

@@ -2,7 +2,6 @@
 from agents.agent import Agent
 from store import register_agent
 import sys
-import matplotlib.pyplot as plt #to remove
 import numpy as np
 from copy import deepcopy
 import time
@@ -18,11 +17,8 @@ class StudentAgent(Agent):
   def __init__(self):
     super(StudentAgent, self).__init__()
     self.name = "AlphaBetaAgent"
-    #self.max_depth = 4  # Limit the search depth
-    self.time_limit = 1.85  # Time constraint in seconds
+    self.time_limit = 1.85
     self.start_time = time.time()
-    self.num_pruned = 0
-    self.breadth_at_depth = {}
 
   def step(self, chess_board, player, opponent):
     """
@@ -40,81 +36,59 @@ class StudentAgent(Agent):
 
     Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
     """
-    # Some simple code to help you with timing. Consider checking 
-    # time_taken during your search and breaking with the best answer
-    # so far when it nears 2 seconds.
-
     start_time = time.time()
     self.start_time = start_time
-
     best_move = None
     best_score = float('-inf')
+    depth = 1
 
-    depth = 1  # Start with shallow search
-    self.breadth_at_depth[depth] = 0 # Initialize breadth at depth 1
     while True:
-      self.breadth_at_depth.setdefault(depth, 0)  # Initialize breadth counter
       for move in get_valid_moves(chess_board, player):
-        self.breadth_at_depth[depth] += 1  # Increment breadth counter
         simulated_board = deepcopy(chess_board)
         execute_move(simulated_board, move, player)
-
         score = self.min_value(simulated_board, depth, float('-inf'), float('inf'), opponent, player)
 
         if score > best_score:
           best_score = score
           best_move = move
 
-      if time.time() - start_time > self.time_limit - 0.1:  # Buffer for safety
+      if time.time() - start_time > self.time_limit - 0.1:
         break
-      depth += 1  # Increase depth
+      depth += 1
+
     time_taken = time.time() - start_time
     print("My AI's turn took ", time_taken, "seconds.")
-
     print(f"Best move: {best_move}, Best score: {best_score}")
-    self.plot_breadth_vs_depth() # Plot breadth vs depth
     return best_move
 
   def max_value(self, chess_board, depth, alpha, beta, player, opponent):
-    """
-    Maximize the player's score.
-    """
     if self.cutoff_test(chess_board, depth, player, opponent):
       return self.evaluate(chess_board, player, opponent)
 
     value = float('-inf')
     legal_moves = get_valid_moves(chess_board, player)
-
     for move in legal_moves:
       simulated_board = np.copy(chess_board)
       execute_move(simulated_board, move, player)
-
       value = max(value, self.min_value(simulated_board, depth - 1, alpha, beta, opponent, player))
       if value >= beta:
         return value
       alpha = max(alpha, value)
-
     return value
 
   def min_value(self, chess_board, depth, alpha, beta, player, opponent):
-    """
-    Minimize the opponent's score.
-    """
     if self.cutoff_test(chess_board, depth, player, opponent):
       return self.evaluate(chess_board, opponent, player)
 
     value = float('inf')
     legal_moves = get_valid_moves(chess_board, player)
-
     for move in legal_moves:
       simulated_board = np.copy(chess_board)
       execute_move(simulated_board, move, player)
-
       value = min(value, self.max_value(simulated_board, depth - 1, alpha, beta, opponent, player))
       if value <= alpha:
         return value
       beta = min(beta, value)
-
     return value
 
   def cutoff_test(self, chess_board, depth, player, opponent):
@@ -122,10 +96,8 @@ class StudentAgent(Agent):
     return depth == 0 or is_endgame or (time.time() - self.start_time >= self.time_limit)
 
   def evaluate(self, chess_board, player, opponent):
-
-    n = chess_board.shape[0]  # Board size
+    n = chess_board.shape[0]
     weights = np.zeros((n, n))
-
     edge_q2left = [(i,0) for i in range(1, n//2)]
     for r, c in edge_q2left:
       if r % 2 == 1:
@@ -142,7 +114,6 @@ class StudentAgent(Agent):
     for r, c in edge_q3down:
       if c % 2 == 1:
         weights[r, c] -= 30
-
 
     edge_q3left = [(i, 0) for i in range(n//2, n)]
     for r, c in edge_q3left:
@@ -161,26 +132,18 @@ class StudentAgent(Agent):
       if c % 2 == 0:
         weights[r, c] -= 30
 
-
-
-    # Corner positions
     corners = [(0, 0), (0, n - 1), (n - 1, 0), (n - 1, n - 1)]
     for r, c in corners:
-      weights[r, c] = 100000  # High value for corners
-    #
-    ajd = [(1,1), (1, n-2), (n-2, 1), (n-2, n-2)]
-    #
+      weights[r, c] = 100000
 
-    # Corner-adjacent penalty
+    ajd = [(1,1), (1, n-2), (n-2, 1), (n-2, n-2)]
+
     for r, c in corners:
       adjacent = [
         (r + dr, c + dc)
         for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        if 0 <= r + dr < n and 0 <= c + dc < n
-      ]
+        if 0 <= r + dr < n and 0 <= c + dc < n ]
       if chess_board[r, c] == player:
-        #for x, y in adjacent:
-          #weights[x, y] = 20
         for nr, nc in adjacent:
           weights[nr, nc] = 100000
           if chess_board[nr, nc] == player:
@@ -195,14 +158,13 @@ class StudentAgent(Agent):
 
             if (nr == n-1 or nr == 0) and nc == n-2:
               weights[nr, nc-1] = 100000
-              #
               if chess_board[nr, nc-1] == player:#
                 weights[nr, nc-2] = 100000#
                 if chess_board[nr, nc-2] == player:
                   weights[nr, nc-3] = 100000
                   if chess_board[nr, nc-3] == player:
                     weights[nr, nc-4] = 100000
-#             #
+
             if (nc == n-1 or nc == 0) and nr == 1:
               weights[nr+1, nc] = 100000
               if chess_board[nr+1, nc] == player:#
@@ -214,15 +176,12 @@ class StudentAgent(Agent):
 
             if (nc == n-1 or nc == 0) and nr == n-2:
               weights[nr-1, nc] = 100000
-#             #
               if chess_board[nr-1, nc] == player:#
                 weights[nr-2, nc] = 100000#
                 if chess_board[nr-2, nc] == player:
                   weights[nr-3, nc] = 100000
                   if chess_board[nr-3, nc] == player:
                     weights[nr-4, nc] = 100000
-#             #
-
 
       else:
         for nr, nc in adjacent:
@@ -230,104 +189,89 @@ class StudentAgent(Agent):
         for x, y in adjacent:
           weights[x, y] = -500
 
-    # Edge weights (non-corner)
-    for i in range(2, n - 2):#
+    # Edge weights
+    for i in range(2, n - 2):
       if weights[0, i] <= 99500:
         if chess_board[0, i+1] != opponent and chess_board[0, i-1] != opponent:
-          weights[0, i] += 20  # Top edge
-          weights[0, 2] += 100 #was 30
-          weights[0, n-3] += 100
+          weights[0, i] += 20
+          weights[0, 2] += 30
+          weights[0, n-3] += 30
         else:
           weights[0, i] -= 30
 
       if weights[n - 1, i] <= 99500:
         if chess_board[n - 1, i + 1] != opponent and chess_board[n - 1, i - 1] != opponent:
-          weights[n - 1, i] += 20  # Bottom edge
-          weights[n-1, 2] += 100
-          weights[n-1, n-3] += 100
+          weights[n - 1, i] += 20
+          weights[n-1, 2] += 30
+          weights[n-1, n-3] += 30
         else:
           weights[n - 1, i] -= 30
 
       if weights[i, 0] <= 99500:
         if chess_board[i+1, 0] != opponent and chess_board[i-1, 0] != opponent:
-          weights[i, 0] += 20  # Left edge
-          weights[2, 0] += 100
-          weights[n-3, 0] += 100
+          weights[i, 0] += 20
+          weights[2, 0] += 30
+          weights[n-3, 0] += 30
         else:
           weights[i, 0] -= 30
 
       if weights[i, n - 1] <= 99500:
         if chess_board[i + 1, n - 1] != opponent and chess_board[i - 1, n - 1] != opponent:
-          weights[i, n - 1] += 20  # Right edge
-          weights[2, n-1] += 100
-          weights[n-3, n-1] += 100
+          weights[i, n - 1] += 20
+          weights[2, n-1] += 30
+          weights[n-3, n-1] += 30
         else:
           weights[i, n - 1] -= 30
 
-    # Inner grid weights
     inner_start = 1
     inner_end = n - 2
     for r in range(inner_start, inner_end):
       for c in range(inner_start, inner_end):
         weights[r, c] = 5
 
-    # Frontier stability heuristic: count stable pieces
-    frontier_score = 0
+    stability_score = 0
     for r in range(n):
       for c in range(n):
         if chess_board[r, c] == player:
           if self.is_stable(chess_board, r, c, player):
-            frontier_score += 10
+            stability_score += 10
         elif chess_board[r, c] == opponent:
           if self.is_stable(chess_board, r, c, opponent):
-            frontier_score -= 10
+            stability_score -= 10
 
-    # Mobility heuristic
     player_moves = len(get_valid_moves(chess_board, player))
     opponent_moves = len(get_valid_moves(chess_board, opponent))
     mobility_score = player_moves - opponent_moves
 
-    # Piece count heuristic
     player_count = np.sum(chess_board == player)
     opponent_count = np.sum(chess_board == opponent)
 
-    # Game stage analysis
     total_pieces = player_count + opponent_count
     total_tiles = n * n
-    game_stage = total_pieces / total_tiles  # Percentage of board filled
+    game_stage = total_pieces / total_tiles
 
-    # Dynamic weighting based on game stage
-    if game_stage < 0.3:  # Early game
-      mobility_weight = 15
+    if game_stage < 0.3:
+      mobility_weight = 35
       stability_weight = 2
       piece_weight = 1
       capture_weight = 0
-    elif game_stage < 0.7:  # Mid game
+    elif game_stage < 0.7:
       mobility_weight = 10
       stability_weight = 5
       piece_weight = 3
       capture_weight = 0.5
-    else:  # Late game
+    else:
       mobility_weight = 5
       stability_weight = 10
       piece_weight = 10
       capture_weight = 3
 
-    # Final score
-    positional_score = sum(
-      weights[r, c] if chess_board[r, c] == player else -weights[r, c]
+    positional_score = sum( weights[r, c] if chess_board[r, c] == player else -weights[r, c]
       for r in range(n)
       for c in range(n)
-      if chess_board[r, c] != 0
-    )
-    total_score = (
-            positional_score
-            + mobility_weight * mobility_score
-            + stability_weight * frontier_score
-            + piece_weight * (player_count - opponent_count)
-            + capture_weight * count_capture(chess_board, (r, c), player)
-    )
-    return total_score
+      if chess_board[r, c] != 0 )
+    total = (positional_score + mobility_weight * mobility_score + stability_weight * stability_score + piece_weight * (player_count - opponent_count) + capture_weight * count_capture(chess_board, (r, c), player))
+    return total
 
   def is_stable(self, chess_board, r, c, player):
     directions = get_directions()
@@ -344,14 +288,3 @@ class StudentAgent(Agent):
       if not stable:
         return False
     return True
-
-  def plot_breadth_vs_depth(self):
-    depths = list(self.breadth_at_depth.keys())
-    breadths = list(self.breadth_at_depth.values())
-    plt.figure(figsize=(8, 6))
-    plt.plot(depths, breadths, marker='o', linestyle='-', color='blue')
-    plt.title("Tree Breadth at Each Depth")
-    plt.xlabel("Depth")
-    plt.ylabel("Breadth (Number of Nodes)")
-    plt.grid(True)
-    plt.show()
